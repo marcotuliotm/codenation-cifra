@@ -29,12 +29,13 @@ public class CesarService {
 	public Answer sendMessage(String token) throws IOException {
 		final Answer answer = cesarClient.generateData(token);
 
-		answer.setDecifrado(decifra(answer.getCifrado(), answer.getNumero_casas()));
+		final String decifrado = decifra(answer.getCifrado(), answer.getNumeroCasas());
+		answer.setDecifrado(decifrado);
 
-		final String resumo_criptografico = Hashing.sha1()
+		final String resumoCriptografico = Hashing.sha1()
 				.hashString(answer.getDecifrado(), Charsets.UTF_8)
 				.toString();
-		answer.setResumo_criptografico(resumo_criptografico);
+		answer.setResumoCriptografico(resumoCriptografico);
 
 		MultipartFile multipartFile = buildMultipartFile(answer);
 		cesarClient.submitData(token, multipartFile);
@@ -42,29 +43,28 @@ public class CesarService {
 		return answer;
 	}
 
-	private MultipartFile buildMultipartFile(Answer answer) throws IOException {
-		ObjectMapper mapper = new ObjectMapper();
-		final File file = new File("answer.json");
+	private MultipartFile buildMultipartFile(final Answer answer) throws IOException {
+		final ObjectMapper mapper = new ObjectMapper();
+		final File file = File.createTempFile("answer", ".json");
 		mapper.writeValue(file, answer);
-		FileItem fileItem = new DiskFileItemFactory().createItem("answer",
+		final FileItem fileItem = new DiskFileItemFactory().createItem("answer",
 				Files.probeContentType(file.toPath()), false, file.getName());
 
-		InputStream in = new FileInputStream(file);
-		OutputStream out = fileItem.getOutputStream();
+		final InputStream in = new FileInputStream(file);
+		final OutputStream out = fileItem.getOutputStream();
 		in.transferTo(out);
 
 		return new CommonsMultipartFile(fileItem);
 	}
 
 	private String decifra(final String cifrado, final int chave) {
-
 		final StringBuilder decifrado = new StringBuilder();
 		cifrado.chars().forEach(letra -> decifrado.append(mudaLetra(letra, chave)));
 
 		return decifrado.toString();
 	}
 
-	private char mudaLetra(int letra, int chave) {
+	private char mudaLetra(int letra, final int chave) {
 		if (letra < 97 || letra > 122) {
 			return (char) letra;
 		}
@@ -72,7 +72,7 @@ public class CesarService {
 		letra -= chave;
 
 		if (letra < 97) {
-			letra = 122 - (-1 + (97 - letra));
+			letra = 122 - (96 - letra);
 		}
 		return (char) letra;
 	}
